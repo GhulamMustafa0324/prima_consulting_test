@@ -1,0 +1,76 @@
+{% extends "calculator/base.html" %}
+{% block title %}Execution History — Cashflow Calculator{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Execution History</h1>
+
+    {% if executions %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date / Time</th>
+                <th>Status</th>
+                <th>Input Rows</th>
+                <th>Output Rows</th>
+                <th>Input File</th>
+                <th>Output File</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ex in executions %}
+            <tr>
+                <td>{{ ex.pk }}</td>
+                <td>{{ ex.created_at|date:"d M Y, H:i" }}</td>
+                <td>
+                    {% if ex.status == "success" %}
+                        <span class="badge badge-success">Success</span>
+                    {% elif ex.status == "failed" %}
+                        <span class="badge badge-failed">Failed</span>
+                    {% else %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% endif %}
+                </td>
+                <td>{{ ex.input_rows|default:"—" }}</td>
+                <td>{{ ex.output_rows|default:"—" }}</td>
+                <td>
+                    <a href="{% url 'calculator:download' ex.pk %}?file_type=input" class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.8rem;">
+                        Input CSV
+                    </a>
+                </td>
+                <td>
+                    {% if ex.status == "success" %}
+                        <a href="{% url 'calculator:download' ex.pk %}?file_type=output" class="btn btn-success" style="padding:0.25rem 0.6rem;font-size:0.8rem;">
+                            Output CSV
+                        </a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}">&laquo; Prev</a>
+        {% endif %}
+        <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p style="color:#666;">No executions yet. <a href="{% url 'calculator:upload' %}">Upload a CSV</a> to get started.</p>
+    {% endif %}
+</div>
+
+<div class="actions">
+    <a href="{% url 'calculator:upload' %}" class="btn btn-primary">New Upload</a>
+</div>
+{% endblock %}

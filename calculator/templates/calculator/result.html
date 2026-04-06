@@ -1,0 +1,53 @@
+{% extends "calculator/base.html" %}
+{% block title %}Result #{{ execution.pk }} — Cashflow Calculator{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Execution #{{ execution.pk }} — Result</h1>
+
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="value">
+                {% if execution.status == "success" %}
+                    <span class="badge badge-success">Success</span>
+                {% elif execution.status == "failed" %}
+                    <span class="badge badge-failed">Failed</span>
+                {% else %}
+                    <span class="badge badge-pending">Pending</span>
+                {% endif %}
+            </div>
+            <div class="label">Status</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ execution.input_rows|default:"—" }}</div>
+            <div class="label">Input Rows Processed</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ execution.output_rows|default:"—" }}</div>
+            <div class="label">Output Rows Generated</div>
+        </div>
+        <div class="summary-item">
+            <div class="value">{{ execution.processed_at|date:"d M Y"|default:"—" }}</div>
+            <div class="label">Processed On</div>
+        </div>
+    </div>
+
+    {% if execution.status == "failed" and execution.error_message %}
+    <h2>Error Details</h2>
+    <div class="error-detail">{{ execution.error_message }}</div>
+    {% endif %}
+
+    <div class="actions">
+        {% if execution.status == "success" %}
+            <a href="{% url 'calculator:download' execution.pk %}?file_type=output" class="btn btn-success">
+                Download Output CSV
+            </a>
+        {% endif %}
+        <a href="{% url 'calculator:download' execution.pk %}?file_type=input" class="btn btn-secondary">
+            Download Input CSV
+        </a>
+        <a href="{% url 'calculator:history' %}" class="btn btn-secondary">View History</a>
+        <a href="{% url 'calculator:upload' %}" class="btn btn-secondary">New Upload</a>
+    </div>
+</div>
+{% endblock %}
