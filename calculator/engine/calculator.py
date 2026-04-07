@@ -26,7 +26,7 @@ from calculator.engine.constants import (
     SALARY_INCREASE_RATE,
     VALUATION_DATE,
 )
-from calculator.engine.exceptions import InputValidationError, MortalityTableLookupError, OutputWriteError
+from calculator.engine.exceptions import InputValidationError, OutputWriteError
 from calculator.engine.mortality_table import MortalityTable
 
 logger = logging.getLogger(__name__)
@@ -48,10 +48,8 @@ class CalculationEngine:
         self._write_output(output_df, output_path)
         return {"input_rows": len(df), "output_rows": len(output_df)}
 
-    # ------------------------------------------------------------------
-    # Step 1 — Load and validate
-    # ------------------------------------------------------------------
-
+    # step 1: load and validate input CSV
+    
     def _load_and_validate(self, input_path: str) -> pd.DataFrame:
         if not os.path.isfile(input_path):
             raise InputValidationError("Input file not found. This is a server error.")
@@ -149,10 +147,7 @@ class CalculationEngine:
         if retired:
             logger.warning("emp_id(s) already at retirement age, will produce 0 rows: %s", retired)
 
-    # ------------------------------------------------------------------
-    # Step 2 — Calculate
-    # ------------------------------------------------------------------
-
+    # step 2: perform calculations
     def _calculate(self, df: pd.DataFrame) -> pd.DataFrame:
         rows = []
         for _, emp in df.iterrows():
@@ -186,10 +181,7 @@ class CalculationEngine:
         # Formula: outflow / (1 + DISCOUNT_RATE) ^ years_ahead
         return outflow if years_ahead == 0 else outflow / ((1 + DISCOUNT_RATE) ** years_ahead)
 
-    # ------------------------------------------------------------------
-    # Step 3 — Write output
-    # ------------------------------------------------------------------
-
+    # step 3: write output CSV
     def _write_output(self, output_df: pd.DataFrame, output_path: str) -> None:
         try:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
