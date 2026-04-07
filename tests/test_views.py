@@ -1,5 +1,6 @@
 import io
 import os
+from urllib import response
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
@@ -169,6 +170,9 @@ class TestDownloadView(TestCase):
         )
         assert response.status_code == 200
         assert response["Content-Disposition"].startswith("attachment")
+        assert "output_" in response["Content-Disposition"]
+        assert f"exec{ex.pk}" in response["Content-Disposition"]
+
 
     def test_download_input_csv(self):
         ex = self._run_success()
@@ -178,6 +182,8 @@ class TestDownloadView(TestCase):
         )
         assert response.status_code == 200
         assert response["Content-Disposition"].startswith("attachment")
+        assert "input_" in response["Content-Disposition"]
+        assert f"exec{ex.pk}" in response["Content-Disposition"]    
 
     def test_invalid_file_type_returns_404(self):
         ex = self._run_success()

@@ -111,9 +111,12 @@ class DownloadView(View):
         file_path = os.path.join(settings.MEDIA_ROOT, field.name)
         if not os.path.isfile(file_path):
             raise Http404("File not found on disk.")
+        
+        date_str = execution.created_at.strftime("%Y-%m-%d")
+        download_name = f"{file_type}_{date_str}_exec{execution.pk}.csv"
 
         return FileResponse(
             open(file_path, "rb"),
             as_attachment=True,
-            filename=os.path.basename(file_path),
+            filename=download_name,
         )
