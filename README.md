@@ -1,6 +1,8 @@
-# Cashflow Calculation System
+# Cashflow Calculator
 
-A Django web application that replaces an Excel-based actuarial cashflow model. It calculates the **Expected Death Outflow** for each employee — the statistical monetary cost if an employee dies before reaching retirement age.
+A Django web app that takes employee data as a CSV and calculates the expected death benefit outflow for each employee — year by year — until retirement.
+
+---
 
 ## Setup
 
@@ -10,56 +12,101 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Open http://127.0.0.1:8000
+Then open http://127.0.0.1:8000
 
-## Usage
+---
 
-1. **Upload** — Upload a CSV file with employee data
-2. **Process** — Click "Run Calculation" to execute the model
-3. **Download** — Download the output CSV from the result page
-4. **History** — View all past executions at `/history/`
+## How to Use
 
-## Input CSV Format
+1. Go to the home page and upload a CSV file
+2. Click **Run Calculation**
+3. Download the output CSV from the result page
+4. All past runs are saved at `/history/`
+
+---
+
+## Input CSV
+
+Your CSV must have these exact columns:
+
+| Column | Example |
+|---|---|
+| emp_id | 1 |
+| emp_name | Employee 1 |
+| date_birth | 1989-02-07 |
+| date_joining | 2024-02-07 |
+| salary | 11280.25 |
+
+---
+
+## Output CSV
+
+One row per employee per year, from their current age up to retirement (age 60):
+
+| Column | What it means |
+|---|---|
+| emp_id | Employee ID |
+| emp_name | Employee name |
+| age | Age in that projection year |
+| future_salary | Salary projected forward at 5% per year |
+| px | Probability of surviving to this age |
+| qx | Probability of dying at this age |
+| expected_death_outflow | future_salary × px × qx |
+
+---
+
+## The Calculation
+
+For each employee, for each year from their current age to 59:
 
 ```
-emp_id,emp_name,date_birth,date_joining,salary
-1,Employee 1,1989-02-07,2024-02-07,11280.25
+future_salary  = current_salary × (1.05 ^ years_ahead)
+px, qx         = looked up from mortality table by age
+outflow        = future_salary × px × qx
 ```
 
-| Column | Type | Notes |
-|---|---|---|
-| `emp_id` | Number or text | Must be unique |
-| `emp_name` | Text | Employee full name |
-| `date_birth` | Date (YYYY-MM-DD) | Must be before date_joining |
-| `date_joining` | Date (YYYY-MM-DD) | Must be before valuation date |
-| `salary` | Positive number | Current salary |
+This replicates the Excel `calculation` sheet exactly.
 
-## Output CSV Format
+---
+
+## Assumptions
+
+These are hardcoded in `calculator/engine/constants.py` and match the Excel `input_assumptions` sheet:
+
+| Setting | Value |
+|---|---|
+| Valuation date | 2024-12-31 |
+| Salary increase rate | 5% per year |
+| Retirement age | 60 |
+| Discount rate | 5.45% |
+
+---
+
+## Project Structure
 
 ```
-emp_id,emp_name,age,future_salary,px,qx,expected_death_outflow
-1,Employee 1,35,11280.25,0.9977105,0.0022895,25.767003
+cashflow_project/
+├── calculator/
+│   ├── engine/
+│   │   ├── constants.py        # All assumptions in one place
+│   │   ├── exceptions.py       # Custom error types
+│   │   ├── mortality_table.py  # Loads age → qx/px lookup table
+│   │   └── calculator.py       # Core calculation logic
+│   ├── data/
+│   │   └── mortality_table.csv # Age probability data (from Excel)
+│   ├── templates/              # HTML pages
+│   ├── models.py               # Execution history table
+│   ├── views.py                # Upload, Process, Result, History, Download
+│   ├── forms.py                # File upload validation
+│   └── urls.py
+└── tests/
+    ├── test_calculator.py
+    ├── test_mortality_table.py
+    ├── test_forms.py
+    └── test_views.py
 ```
 
-One row per employee per year from current age to retirement age (60).
-
-## Calculation Logic
-
-Replicates the Excel `calculation` sheet:
-
-1. **Age** = `INT((valuation_date - date_birth + 1) / 365.25)`
-2. **Future Salary** = `salary × (1 + 0.05) ^ years_ahead`
-3. **px / qx** = looked up from `lookup_probability` mortality table
-4. **Expected Death Outflow** = `future_salary × px × qx`
-
-### Assumptions (pending client confirmation)
-
-| Assumption | Value | Location |
-|---|---|---|
-| Valuation date | 2024-12-31 | `engine/constants.py` |
-| Salary increase rate | 5% | `engine/constants.py` |
-| Retirement age | 60 | `engine/constants.py` |
-| Discount rate | 5.45% (not applied yet) | `engine/constants.py` |
+---
 
 ## Running Tests
 
@@ -68,24 +115,4 @@ pip install pytest pytest-django
 pytest tests/ -v
 ```
 
-## Project Structure
-
-```
-cashflow_project/
-├── calculator/
-│   ├── engine/          # Calculation engine (zero Django dependency)
-│   │   ├── calculator.py
-│   │   ├── constants.py
-│   │   ├── exceptions.py
-│   │   └── mortality_table.py
-│   ├── data/
-│   │   └── mortality_table.csv
-│   ├── templates/calculator/
-│   ├── models.py
-│   ├── views.py
-│   ├── forms.py
-│   └── urls.py
-├── tests/
-├── media/
-└── manage.py
-```
+43 tests, all passing.
